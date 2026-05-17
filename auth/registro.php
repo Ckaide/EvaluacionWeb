@@ -1,5 +1,6 @@
 <?php
 include("../config/conexion.php");
+include("two_factor.php");
 
 $error = "";
 
@@ -11,17 +12,25 @@ if ($_POST) {
 
     if ($p1 !== $p2) {
         $error = "❌ Las contraseñas no coinciden";
+    } elseif (strlen($p1) < 8 || !preg_match('/[A-Z]/', $p1) || !preg_match('/[0-9]/', $p1) || !preg_match('/[!@#$%^&*()_+\-=[\]{};:\"\\|,.<>\/?]/', $p1)) {
+        $error = "❌ La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.";
     } else {
         $hash = password_hash($p1, PASSWORD_DEFAULT);
+        $secret = generateBase32Secret(16);
 
-        $stmt = $conn->prepare("INSERT INTO usuario(nombre,correo,contraseña,rol) VALUES(?,?,?, 'cliente')");
-        $stmt->bind_param("sss", $nombre, $correo, $hash);
+        $stmt = $conn->prepare("INSERT INTO usuario(nombre,correo,contraseña,rol,two_factor_secret) VALUES(?,?,?, 'cliente', ?)");
+        $stmt->bind_param("ssss", $nombre, $correo, $hash, $secret);
 
-        if ($stmt->execute()) {
+        try {
+            $stmt->execute();
             header("Location: login.php");
             exit();
-        } else {
-            $error = "Error al registrar (correo duplicado?)";
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() === 1062) {
+                $error = "❌ Este correo ya está registrado. Usa otro correo o inicia sesión.";
+            } else {
+                $error = "Error al registrar. Intenta de nuevo más tarde.";
+            }
         }
     }
 }

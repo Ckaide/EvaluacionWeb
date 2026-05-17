@@ -1,11 +1,14 @@
 <?php
 include("../config/conexion.php");
+include("two_factor.php");
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 $error = "";
+$info = $_SESSION['flash_2fa'] ?? "";
+unset($_SESSION['flash_2fa']);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -24,20 +27,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (password_verify($password, $user['contraseña'])) {
 
-            $_SESSION['user'] = $user;
-
-            // 🔒 REDIRECCIÓN SEGÚN ROL
-            if ($user['rol'] == 'admin') {
-
-                header("Location: ../admin/dashboard.php");
-
+            if (isset($user['banned']) && $user['banned'] == 1) {
+                $error = "❌ Usuario baneado. Contacta con el administrador.";
             } else {
+                $secret = $user['two_factor_secret'] ?? '';
+                if (empty($secret)) {
+                    $error = "Este usuario no tiene configurado 2FA. Contacta al administrador.";
+                } else {
+                    $code = generateTotpCode($secret);
+                    $subject = "Código 2FA Tienda Celulares";
+                    $message = "Hola {$user['nombre']},\n\nTu código de seguridad 2FA es: {$code}\n\nNo compartas este código con nadie.\n\nGracias,\nTienda Celulares";
+                    $headers = "From: no-reply@tiendacelulares.local\r\nReply-To: no-reply@tiendacelulares.local\r\nContent-Type: text/plain; charset=UTF-8\r\n";
 
-                header("Location: ../tienda.php");
-
+                    if (!send2faMail($correo, $user['nombre'] ?? '', $subject, $message)) {
+                        $error = "No se pudo enviar el código 2FA. Verifica la configuración de correo en config/config.php.";
+                    } else {
+                        $_SESSION['pending_2fa_user_id'] = $user['id'] ?? null;
+                        $_SESSION['pending_2fa_email'] = $user['correo'];
+                        $_SESSION['pending_2fa_role'] = $user['rol'];
+                        $_SESSION['flash_2fa'] = "Te hemos enviado un código al correo registrado.";
+                        header("Location: verify_2fa.php");
+                        exit();
+                    }
+                }
             }
-
-            exit();
 
         } else {
 
@@ -98,6 +111,12 @@ body{
 <h2 class="text-center mb-4">
 🔐 Iniciar Sesión
 </h2>
+
+<?php if ($info != "") { ?>
+<div class="alert alert-success">
+<?= $info ?>
+</div>
+<?php } ?>
 
 <?php if($error != "") { ?>
 

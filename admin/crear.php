@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $stmt->execute();
 
-    header("Location: celulares.php");
+    header("Location: dashboard.php#products");
     exit();
 }
 ?>

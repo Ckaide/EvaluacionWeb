@@ -50,7 +50,7 @@ if ($_POST) {
     $stmt->bind_param("ssdisi",$marca,$modelo,$precio,$stock,$json,$id);
     $stmt->execute();
 
-    header("Location: celulares.php");
+    header("Location: dashboard.php#products");
     exit();
 }
 ?>
