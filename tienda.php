@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$res = $conn->query("SELECT * FROM celular");
+$res = $conn->query("SELECT c.*, cat.nombre AS categoria FROM celular c LEFT JOIN categoria cat ON c.id_categoria = cat.id_categoria");
 ?>
 
 <!DOCTYPE html>
@@ -15,7 +15,7 @@ $res = $conn->query("SELECT * FROM celular");
 <meta charset="UTF-8">
 <title>Tienda</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
 
@@ -24,6 +24,15 @@ body{
     color:white;
 }
 
+/* HEADER */
+.header-user{
+    background: rgba(255,255,255,0.1);
+    padding:6px 12px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+/* CARDS */
 .card{
     border:none;
     border-radius:20px;
@@ -39,12 +48,14 @@ body{
     object-fit:cover;
 }
 
+/* PRECIO */
 .precio{
     font-size:22px;
     font-weight:bold;
     color:#28a745;
 }
 
+/* STOCK */
 .stock-bajo{
     color:red;
     font-weight:bold;
@@ -66,17 +77,19 @@ body{
 <!-- HEADER -->
 <div class="d-flex justify-content-between align-items-center mb-4">
 
-<h1>
-🛒 Tienda
-</h1>
+<h1>🛒 Tienda</h1>
 
-<div class="d-flex gap-2">
+<div class="d-flex align-items-center gap-3">
 
 <a href="carrito.php" class="btn btn-warning">
 🛒 Ver Carrito
 </a>
 
 <?php if(isset($_SESSION['user'])) { ?>
+
+<span class="header-user">
+👤 <?= is_array($_SESSION['user']) ? $_SESSION['user']['nombre'] : $_SESSION['user'] ?>
+</span>
 
 <a href="auth/logout.php" class="btn btn-danger">
 🚪 Cerrar Sesión
@@ -133,6 +146,10 @@ class="w-100"
 $<?= number_format($r['precio'],2) ?>
 </p>
 
+<p class="text-muted mb-2">
+Categoria: <?= htmlspecialchars($r['categoria'] ?: 'Sin categoría') ?>
+</p>
+
 <!-- STOCK -->
 <?php if($r['stock'] <= 0) { ?>
 
@@ -157,7 +174,6 @@ $<?= number_format($r['precio'],2) ?>
 <!-- BOTONES -->
 <div class="mt-auto d-grid gap-2">
 
-<!-- AGREGAR -->
 <?php if($r['stock'] > 0) { ?>
 
 <a 

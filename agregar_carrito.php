@@ -2,65 +2,50 @@
 session_start();
 include("config/conexion.php");
 
-$id = $_GET['id'] ?? 0;
+if (!isset($_SESSION['user'])) {
+    header("Location: auth/login.php");
+    exit();
+}
 
-// BUSCAR PRODUCTO
+$id = intval($_GET['id'] ?? 0);
+$userId = $_SESSION['user']['id_usuario'];
+
 $stmt = $conn->prepare("SELECT * FROM celular WHERE id_celular=?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
+$producto = $stmt->get_result()->fetch_assoc();
 
-$res = $stmt->get_result();
-
-if($res->num_rows == 0){
+if (!$producto) {
     header("Location: tienda.php");
     exit();
 }
 
-$producto = $res->fetch_assoc();
-
-// SI NO EXISTE EL CARRITO
-if(!isset($_SESSION['carrito'])){
-    $_SESSION['carrito'] = [];
+if ($producto['stock'] <= 0) {
+    $_SESSION['error_stock'] = "❌ Producto agotado";
+    header("Location: tienda.php");
+    exit();
 }
 
-// SI YA EXISTE EL PRODUCTO
-if(isset($_SESSION['carrito'][$id])){
+$stmt = $conn->prepare("SELECT cantidad FROM carrito WHERE id_usuario=? AND id_celular=?");
+$stmt->bind_param("ii", $userId, $id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-    $cantidadActual = $_SESSION['carrito'][$id]['cantidad'];
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $cantidadActual = intval($row['cantidad']);
 
-    // VALIDAR STOCK
-    if($cantidadActual + 1 > $producto['stock']){
-
-        $_SESSION['error_stock'] =
-        "⚠ No hay suficiente stock para {$producto['marca']} {$producto['modelo']}";
-
-        header("Location: tienda.php");
-        exit();
+    if ($cantidadActual + 1 > $producto['stock']) {
+        $_SESSION['error_stock'] = "⚠ No hay suficiente stock para {$producto['marca']} {$producto['modelo']}";
+    } else {
+        $stmt = $conn->prepare("UPDATE carrito SET cantidad = cantidad + 1 WHERE id_usuario=? AND id_celular=?");
+        $stmt->bind_param("ii", $userId, $id);
+        $stmt->execute();
     }
-
-    $_SESSION['carrito'][$id]['cantidad']++;
-
-}else{
-
-    // VALIDAR STOCK MÍNIMO
-    if($producto['stock'] <= 0){
-
-        $_SESSION['error_stock'] =
-        "❌ Producto agotado";
-
-        header("Location: tienda.php");
-        exit();
-    }
-
-    $_SESSION['carrito'][$id] = [
-
-        'id' => $producto['id_celular'],
-        'marca' => $producto['marca'],
-        'modelo' => $producto['modelo'],
-        'precio' => $producto['precio'],
-        'imagenes' => $producto['imagenes'],
-        'cantidad' => 1
-    ];
+} else {
+    $stmt = $conn->prepare("INSERT INTO carrito(id_usuario, id_celular, cantidad) VALUES(?,?,1)");
+    $stmt->bind_param("ii", $userId, $id);
+    $stmt->execute();
 }
 
 header("Location: carrito.php");

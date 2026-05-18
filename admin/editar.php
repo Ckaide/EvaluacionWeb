@@ -5,6 +5,8 @@ include("../config/conexion.php");
 
 $id = intval($_GET['id'] ?? 0);
 
+$categorias = $conn->query("SELECT * FROM categoria ORDER BY nombre ASC");
+
 $res = $conn->query("SELECT * FROM celular WHERE id_celular=$id");
 $row = $res->fetch_assoc();
 $imagenes = json_decode($row['imagenes'], true) ?: [];
@@ -32,6 +34,7 @@ if ($_POST) {
     $modelo = $_POST['modelo'];
     $precio = $_POST['precio'];
     $stock = $_POST['stock'];
+    $id_categoria = empty($_POST['id_categoria']) ? null : intval($_POST['id_categoria']);
 
     // nuevas imágenes
     if (!empty($_FILES['imagenes']['name'][0])) {
@@ -46,8 +49,8 @@ if ($_POST) {
 
     $json=json_encode($imagenes);
 
-    $stmt=$conn->prepare("UPDATE celular SET marca=?,modelo=?,precio=?,stock=?,imagenes=? WHERE id_celular=?");
-    $stmt->bind_param("ssdisi",$marca,$modelo,$precio,$stock,$json,$id);
+    $stmt=$conn->prepare("UPDATE celular SET marca=?,modelo=?,precio=?,stock=?,imagenes=?,id_categoria=? WHERE id_celular=?");
+    $stmt->bind_param("ssdisii",$marca,$modelo,$precio,$stock,$json,$id_categoria,$id);
     $stmt->execute();
 
     header("Location: dashboard.php#products");
@@ -61,10 +64,17 @@ if ($_POST) {
 <h3>Editar</h3>
 
 <form method="POST" enctype="multipart/form-data">
-<input name="marca" value="<?= $row['marca'] ?>" class="form-control my-2">
-<input name="modelo" value="<?= $row['modelo'] ?>" class="form-control my-2">
-<input name="precio" value="<?= $row['precio'] ?>" class="form-control my-2">
-<input name="stock" value="<?= $row['stock'] ?>" class="form-control my-2">
+<input name="marca" value="<?= htmlspecialchars($row['marca']) ?>" class="form-control my-2">
+<input name="modelo" value="<?= htmlspecialchars($row['modelo']) ?>" class="form-control my-2">
+<input name="precio" value="<?= htmlspecialchars($row['precio']) ?>" class="form-control my-2">
+<input name="stock" value="<?= htmlspecialchars($row['stock']) ?>" class="form-control my-2">
+
+<select name="id_categoria" class="form-control my-2">
+    <option value="">Selecciona una categoría</option>
+    <?php while($cat = $categorias->fetch_assoc()): ?>
+        <option value="<?= $cat['id_categoria'] ?>" <?= $row['id_categoria'] == $cat['id_categoria'] ? 'selected' : '' ?>><?= htmlspecialchars($cat['nombre']) ?></option>
+    <?php endwhile; ?>
+</select>
 
 <p>Imágenes:</p>
 <?php foreach($imagenes as $i=>$img): ?>

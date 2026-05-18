@@ -7,12 +7,15 @@ if ($_SESSION['user']['rol'] != 'admin') {
     exit();
 }
 
+$categorias = $conn->query("SELECT * FROM categoria ORDER BY nombre ASC");
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $marca = $_POST['marca'];
     $modelo = $_POST['modelo'];
     $precio = $_POST['precio'];
     $stock = $_POST['stock'];
+    $id_categoria = empty($_POST['id_categoria']) ? null : intval($_POST['id_categoria']);
 
     $imagenes = [];
 
@@ -34,14 +37,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $json = json_encode($imagenes);
 
-    $stmt = $conn->prepare("INSERT INTO celular(marca,modelo,precio,stock,imagenes) VALUES(?,?,?,?,?)");
+    $stmt = $conn->prepare("INSERT INTO celular(marca,modelo,precio,stock,imagenes,id_categoria) VALUES(?,?,?,?,?,?)");
 
-    $stmt->bind_param("ssdis",
+    $stmt->bind_param("ssdisi",
         $marca,
         $modelo,
         $precio,
         $stock,
-        $json
+        $json,
+        $id_categoria
     );
 
     $stmt->execute();
@@ -148,6 +152,13 @@ placeholder="Stock"
 class="form-control mb-3"
 required
 >
+
+<select name="id_categoria" class="form-control mb-3">
+    <option value="">Selecciona una categoría</option>
+    <?php while ($cat = $categorias->fetch_assoc()): ?>
+        <option value="<?= $cat['id_categoria'] ?>"><?= htmlspecialchars($cat['nombre']) ?></option>
+    <?php endwhile; ?>
+</select>
 
 <input 
 type="file" 

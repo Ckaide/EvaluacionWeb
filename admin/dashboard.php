@@ -63,7 +63,7 @@ ORDER BY v.fecha DESC
 LIMIT 5
 ");
 
-$productos = $conn->query("SELECT * FROM celular ORDER BY id_celular DESC");
+$productos = $conn->query("SELECT c.*, cat.nombre AS categoria FROM celular c LEFT JOIN categoria cat ON c.id_categoria = cat.id_categoria ORDER BY c.id_celular DESC");
 $clientes = $conn->query("SELECT id_usuario, nombre, correo, banned FROM usuario WHERE rol='cliente' ORDER BY nombre ASC");
 ?>
 
@@ -227,6 +227,7 @@ Ver Ventas
 <tr>
 <th>Marca</th>
 <th>Modelo</th>
+<th>Categoría</th>
 <th>Precio</th>
 <th>Stock</th>
 <th class="text-end">Acciones</th>
@@ -239,6 +240,7 @@ Ver Ventas
 <tr>
 <td><?= htmlspecialchars($p['marca']) ?></td>
 <td><?= htmlspecialchars($p['modelo']) ?></td>
+<td><?= htmlspecialchars($p['categoria'] ?: 'Sin categoría') ?></td>
 <td class="text-success">$<?= number_format($p['precio'],2) ?></td>
 <td><?= intval($p['stock']) ?></td>
 <td class="text-end">
@@ -351,14 +353,14 @@ $<?= number_format($v['total'],2) ?>
         <h5 class="modal-title" id="productModalLabel">Detalles del producto</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body text-white">
         <div class="row">
           <div class="col-md-6">
-            <ul class="list-group list-group-flush text-white-75">
-              <li class="list-group-item bg-transparent border-secondary"><strong>Marca:</strong> <span id="modalBrand"></span></li>
-              <li class="list-group-item bg-transparent border-secondary"><strong>Modelo:</strong> <span id="modalModel"></span></li>
-              <li class="list-group-item bg-transparent border-secondary"><strong>Precio:</strong> $<span id="modalPrice"></span></li>
-              <li class="list-group-item bg-transparent border-secondary"><strong>Stock:</strong> <span id="modalStock"></span></li>
+            <ul class="list-group list-group-flush text-white">
+              <li class="list-group-item bg-transparent border-secondary text-white"><strong>Marca:</strong> <span id="modalBrand"></span></li>
+              <li class="list-group-item bg-transparent border-secondary text-white"><strong>Modelo:</strong> <span id="modalModel"></span></li>
+              <li class="list-group-item bg-transparent border-secondary text-white"><strong>Precio:</strong> $<span id="modalPrice"></span></li>
+              <li class="list-group-item bg-transparent border-secondary text-white"><strong>Stock:</strong> <span id="modalStock"></span></li>
             </ul>
           </div>
           <div class="col-md-6" id="modalImagesContainer">

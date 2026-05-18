@@ -1,11 +1,34 @@
 <?php
+include("config/conexion.php");
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$carrito = $_SESSION['carrito'] ?? [];
+if (!isset($_SESSION['user'])) {
+    header("Location: auth/login.php");
+    exit();
+}
 
+$userId = $_SESSION['user']['id_usuario'];
+
+$carrito = [];
 $total = 0;
+
+$stmt = $conn->prepare("SELECT c.id_celular, c.marca, c.modelo, c.precio, c.stock, c.imagenes, car.cantidad
+FROM carrito car
+JOIN celular c ON car.id_celular = c.id_celular
+WHERE car.id_usuario = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()) {
+    $subtotal = $row['precio'] * $row['cantidad'];
+    $row['subtotal'] = $subtotal;
+    $carrito[$row['id_celular']] = $row;
+    $total += $subtotal;
+}
 ?>
 
 <!DOCTYPE html>
